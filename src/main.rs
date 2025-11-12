@@ -1,0 +1,118 @@
+#![allow(dead_code)]
+
+use std::env::args;
+
+#[derive(Debug)]
+enum Token {
+    Rep,
+    Tailup,
+    Back,
+    Closebr,
+    Forw,
+    Left,
+    Num(u16),
+    Openbr,
+    Taildown,
+    Right,
+}
+fn produce_py(a: Vec<Token>) -> String {
+    let mut answer = String::from("from turtle import *\ntracer(0)\n");
+    let mut offset = 0;
+    for (i, t) in a.iter().enumerate() {
+        match t {
+            Token::Rep => {
+                if let Token::Num(num) = a[i + 1] {
+                    answer.push_str(
+                        format!("{}for i in range({}):\n", "\t".repeat(offset), num).as_str(),
+                    );
+                } else {
+                    eprintln!("Команда 'Повтори' не получила количества итераций")
+                }
+                offset += 1;
+            }
+            Token::Left => {
+                if let Token::Num(num) = a[i + 1] {
+                    answer.push_str(format!("{}lt({})\n", "\t".repeat(offset), num).as_str());
+                } else {
+                    eprintln!("Команда 'Налево' не получила аргумента")
+                }
+            }
+            Token::Closebr => offset -= 1,
+            Token::Right => {
+                if let Token::Num(num) = a[i + 1] {
+                    answer.push_str(format!("{}rt({})\n", "\t".repeat(offset), num).as_str());
+                } else {
+                    eprintln!("Команда 'Направо' не получила аргумента")
+                }
+            }
+            Token::Forw => {
+                if let Token::Num(num) = a[i + 1] {
+                    answer.push_str(format!("{}fd({})\n", "\t".repeat(offset), num).as_str());
+                } else {
+                    eprintln!("Команда 'Вперед' не получила аргумента")
+                }
+            }
+            Token::Openbr => {}
+            Token::Back => {
+                if let Token::Num(num) = a[i + 1] {
+                    answer.push_str(format!("{}bk({})\n", "\t".repeat(offset), num).as_str());
+                } else {
+                    eprintln!("Команда 'Назад' не получила аргумента")
+                }
+            }
+            Token::Tailup => {
+                answer.push_str(format!("{}up()\n", "\t".repeat(offset)).as_str());
+            }
+            Token::Taildown => {
+                answer.push_str(format!("{}down()\n", "\t".repeat(offset)).as_str());
+            }
+            Token::Num(_) => {}
+        }
+    }
+    answer.push_str("done()");
+    answer
+}
+fn tokenize(target: String) -> Vec<Token> {
+    let mut answer: Vec<Token> = vec![];
+    for mut i in target.split_whitespace() {
+        let mut bracket = false;
+        if i.starts_with("[") {
+            answer.push(Token::Openbr);
+            i = unsafe { i.strip_prefix("[").unwrap_unchecked() };
+        } else if i.ends_with("]") {
+            bracket = true;
+            i = unsafe { i.strip_suffix("]").unwrap_unchecked() };
+        }
+
+        if let Ok(num) = i.parse::<u16>() {
+            answer.push(Token::Num(num));
+        }
+        match i {
+            "Повтори" => answer.push(Token::Rep),
+            "Поднять" => answer.push(Token::Tailup),
+            "Опустить" => answer.push(Token::Taildown),
+            "Налево" => answer.push(Token::Left),
+            "Направо" => answer.push(Token::Right),
+            "Вперёд" => answer.push(Token::Forw),
+            "Назад" => answer.push(Token::Back),
+            "хвост" => {}
+            &_ => {}
+        }
+        if bracket {
+            answer.push(Token::Closebr);
+        }
+    }
+    answer
+}
+fn main() {
+    let mut a = args();
+    let p = a.nth(1);
+    if let Some(path) = p {
+        println!("{path}");
+        let target = std::fs::read_to_string(path).unwrap();
+        let tokens = tokenize(target);
+        println!("{}", produce_py(tokens))
+    } else {
+        eprintln!("Укажите имя файла!")
+    }
+}
