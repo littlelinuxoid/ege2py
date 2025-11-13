@@ -17,7 +17,8 @@ enum Token {
     Mult,
 }
 fn produce_py(a: Vec<Token>) -> String {
-    let mut answer = String::from("from turtle import *\ntracer(0)\nm = 1\n");
+    let mut answer =
+        String::from("from turtle import *\ntracer(0)\nm = 1\nscreensize(2000,2000)\n");
     let mut indent = 0;
     for (i, t) in a.iter().enumerate() {
         match t {
@@ -87,6 +88,10 @@ fn produce_py(a: Vec<Token>) -> String {
             Token::Num(_) => {}
         }
     }
+    answer.push_str("up()\n");
+    answer.push_str(
+        "\nfor x in range(-50,50):\n\tfor y in range(-50,50):\n\t\tgoto(x *m , y * m)\n\t\tdot(2, 'blue')\n",
+    );
     answer.push_str("done()");
     answer
 }
