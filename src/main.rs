@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::env::args;
+use std::{env::args, process::exit};
 
 #[derive(Debug)]
 enum Token {
@@ -14,57 +14,75 @@ enum Token {
     Openbr,
     Taildown,
     Right,
+    Mult,
 }
 fn produce_py(a: Vec<Token>) -> String {
-    let mut answer = String::from("from turtle import *\ntracer(0)\n");
-    let mut offset = 0;
+    let mut answer = String::from("from turtle import *\ntracer(0)\nm = 1\n");
+    let mut indent = 0;
     for (i, t) in a.iter().enumerate() {
         match t {
+            Token::Mult if i == 0 => {
+                if let Token::Num(num) = a[i + 1] {
+                    answer.push_str(format!("m = {num}\n").as_str());
+                } else {
+                    eprintln!("Масштаб Задан некорректно");
+                    exit(1);
+                }
+            }
+            Token::Mult => {
+                eprintln!("Масштаб должен быть задан в начале программы первой строкой");
+                exit(1)
+            }
             Token::Rep => {
                 if let Token::Num(num) = a[i + 1] {
                     answer.push_str(
-                        format!("{}for i in range({}):\n", "\t".repeat(offset), num).as_str(),
+                        format!("{}for i in range({}):\n", "\t".repeat(indent), num).as_str(),
                     );
                 } else {
-                    eprintln!("Команда 'Повтори' не получила количества итераций")
+                    eprintln!("Команда 'Повтори' не получила количества итераций");
+                    exit(1);
                 }
-                offset += 1;
+                indent += 1;
             }
             Token::Left => {
                 if let Token::Num(num) = a[i + 1] {
-                    answer.push_str(format!("{}lt({})\n", "\t".repeat(offset), num).as_str());
+                    answer.push_str(format!("{}lt(m * {})\n", "\t".repeat(indent), num).as_str());
                 } else {
-                    eprintln!("Команда 'Налево' не получила аргумента")
+                    eprintln!("Команда 'Налево' не получила аргумента");
+                    exit(1);
                 }
             }
-            Token::Closebr => offset -= 1,
+            Token::Closebr => indent -= 1,
             Token::Right => {
                 if let Token::Num(num) = a[i + 1] {
-                    answer.push_str(format!("{}rt({})\n", "\t".repeat(offset), num).as_str());
+                    answer.push_str(format!("{}rt(m * {})\n", "\t".repeat(indent), num).as_str());
                 } else {
-                    eprintln!("Команда 'Направо' не получила аргумента")
+                    eprintln!("Команда 'Направо' не получила аргумента");
+                    exit(1);
                 }
             }
             Token::Forw => {
                 if let Token::Num(num) = a[i + 1] {
-                    answer.push_str(format!("{}fd({})\n", "\t".repeat(offset), num).as_str());
+                    answer.push_str(format!("{}fd(m * {})\n", "\t".repeat(indent), num).as_str());
                 } else {
-                    eprintln!("Команда 'Вперед' не получила аргумента")
+                    eprintln!("Команда 'Вперед' не получила аргумента");
+                    exit(1);
                 }
             }
             Token::Openbr => {}
             Token::Back => {
                 if let Token::Num(num) = a[i + 1] {
-                    answer.push_str(format!("{}bk({})\n", "\t".repeat(offset), num).as_str());
+                    answer.push_str(format!("{}bk(m * {})\n", "\t".repeat(indent), num).as_str());
                 } else {
-                    eprintln!("Команда 'Назад' не получила аргумента")
+                    eprintln!("Команда 'Назад' не получила аргумента");
+                    exit(1);
                 }
             }
             Token::Tailup => {
-                answer.push_str(format!("{}up()\n", "\t".repeat(offset)).as_str());
+                answer.push_str(format!("{}up()\n", "\t".repeat(indent)).as_str());
             }
             Token::Taildown => {
-                answer.push_str(format!("{}down()\n", "\t".repeat(offset)).as_str());
+                answer.push_str(format!("{}down()\n", "\t".repeat(indent)).as_str());
             }
             Token::Num(_) => {}
         }
@@ -88,6 +106,7 @@ fn tokenize(target: String) -> Vec<Token> {
             answer.push(Token::Num(num));
         }
         match i {
+            "Масштаб" => answer.push(Token::Mult),
             "Повтори" => answer.push(Token::Rep),
             "Поднять" => answer.push(Token::Tailup),
             "Опустить" => answer.push(Token::Taildown),
@@ -108,7 +127,6 @@ fn main() {
     let mut a = args();
     let p = a.nth(1);
     if let Some(path) = p {
-        println!("{path}");
         let target = std::fs::read_to_string(path).unwrap();
         let tokens = tokenize(target);
         println!("{}", produce_py(tokens))
