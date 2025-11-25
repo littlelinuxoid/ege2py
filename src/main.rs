@@ -117,7 +117,7 @@ fn tokenize(target: String) -> Vec<Token> {
             "Опустить" => answer.push(Token::Taildown),
             "Налево" => answer.push(Token::Left),
             "Направо" => answer.push(Token::Right),
-            "Вперёд" => answer.push(Token::Forw),
+            "Вперёд" | "Вперед" => answer.push(Token::Forw),
             "Назад" => answer.push(Token::Back),
             "хвост" => {}
             &_ => {}
